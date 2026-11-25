@@ -1,0 +1,98 @@
+================================================================================
+REKAPTES - DASHBOARD MONITORING PESERTA SURABAYA (PROJECT KEMANGI)
+================================================================================
+
+Aplikasi web berbasis PHP & MariaDB untuk memantau rekap hasil Pre-Test dan 
+Post-Test peserta kegiatan di Kota Surabaya yang terintegrasi secara 
+real-time dengan Google Forms / Google Sheets API serta dilengkapi sistem 
+backup lokal otomatis (Sync & Fallback).
+
+
+--------------------------------------------------------------------------------
+1. STRUKTUR FILE PROJECT
+--------------------------------------------------------------------------------
+Pastikan seluruh file berikut berada dalam satu folder utama 
+(contoh: C:\xampp\htdocs\php\Kemangi\):
+
+├── db.php          -> Koneksi database MariaDB & fungsi autentikasi user
+├── login.php       -> Halaman login admin (dilengkapi fitur lihat password)
+├── logout.php      -> Script penghancur session untuk keluar dari sistem
+├── testing.php     -> Halaman dashboard utama, penarik data Sheets & backup DB
+├── logo.png        -> File gambar logo lokal yang tampil di halaman login
+└── README.txt      -> File dokumentasi panduan penggunaan sistem
+
+
+--------------------------------------------------------------------------------
+2. KONFIGURASI DATABASE (MARIADB / PHPMYADMIN)
+--------------------------------------------------------------------------------
+1. Buka phpMyAdmin (http://localhost/phpmyadmin).
+2. Buat database baru dengan nama: kemangi_db
+3. Pilih database kemangi_db, buka tab SQL, dan jalankan query berikut:
+
+   -- Tabel Akun Admin per Kecamatan
+   CREATE TABLE IF NOT EXISTS users (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       username VARCHAR(50) NOT NULL UNIQUE,
+       password VARCHAR(255) NOT NULL,
+       nama_admin VARCHAR(100) NOT NULL,
+       kecamatan VARCHAR(50) NOT NULL
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+   INSERT INTO users (username, password, nama_admin, kecamatan) VALUES
+   ('admin', LOWER(SHA2('jatim123', 256)), 'Super Admin Surabaya', ''),
+   ('bbtan$13', LOWER(SHA2('jatim123', 256)), 'Admin Kec. Bubutan', 'Bubutan'),
+   ('gbeng$14', LOWER(SHA2('jatim123', 256)), 'Admin Kec. Gubeng', 'Gubeng'),
+   ('rngkt$15', LOWER(SHA2('jatim123', 256)), 'Admin Kec. Rungkut', 'Rungkut'),
+   ('skllo$16', LOWER(SHA2('jatim123', 256)), 'Admin Kec. Sukolilo', 'Sukolilo'),
+   ('wnkrm$17', LOWER(SHA2('jatim123', 256)), 'Admin Kec. Wonokromo', 'Wonokromo'),
+   ('tmbks$18', LOWER(SHA2('jatim123', 256)), 'Admin Kec. Tambaksari', 'Tambaksari');
+
+   -- Tabel Backup Otomatis Data Google Sheets
+   CREATE TABLE IF NOT EXISTS peserta_backup (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       raw_json LONGTEXT NOT NULL,
+       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+--------------------------------------------------------------------------------
+3. DAFTAR AKUN LOGIN DEFAULT
+--------------------------------------------------------------------------------
+Password untuk seluruh akun di bawah ini adalah: jatim123
+(Di database tersimpan dalam bentuk enkripsi SHA-256).
+
+- Super Admin (Semua Wilayah) : admin
+- Kecamatan Bubutan           : bbtan$13
+- Kecamatan Gubeng            : gbeng$14
+- Kecamatan Rungkut           : rngkt$15
+- Kecamatan Sukolilo          : skllo$16
+- Kecamatan Wonokromo         : wnkrm$17
+- Kecamatan Tambaksari        : tmbks$18
+
+
+--------------------------------------------------------------------------------
+4. KONFIGURASI GOOGLE SHEETS API
+--------------------------------------------------------------------------------
+1. Buka file testing.php.
+2. Cari variabel $apiUrl di bagian atas file.
+3. Pastikan nilainya berisi URL Web App Google Apps Script yang aktif 
+   (berakhiran /exec) dan berizin akses "Anyone / Siapa saja".
+4. Cara kerja penarikan data:
+   - ONLINE  : Data ditarik dari Google Sheets dan langsung menyinkronkan 
+               (menimpa) isi tabel peserta_backup di MariaDB.
+   - OFFLINE : Jika Google Sheets gagal diakses atau melebihi batas waktu 
+               (timeout), sistem otomatis membaca data terakhir dari tabel 
+               peserta_backup agar dashboard tidak kosong.
+
+
+--------------------------------------------------------------------------------
+5. CATATAN TROUBLESHOOTING CEPAT
+--------------------------------------------------------------------------------
+- Data Dashboard tampil 0 : 
+  Periksa kembali URL $apiUrl di testing.php, pastikan koneksi internet aktif, 
+  atau pastikan tabel peserta_backup sudah dibuat di database kemangi_db.
+- Logo tidak muncul di halaman login : 
+  Pastikan file logo.png berada di folder yang sama dengan login.php.
+- Gagal Login : 
+  Pastikan service Apache dan MySQL di XAMPP dalam status Running (hijau).
+================================================================================

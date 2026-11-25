@@ -1,0 +1,43 @@
+Upload kode.gs ini ke sheet yang akan dipakai
+------------------------------------------------
+
+function doGet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheets = ss.getSheets();
+  var allData = [];
+
+  for (var i = 0; i < sheets.length; i++) {
+    var sheet = sheets[i];
+    
+    // Hanya ambil sheet yang punya baris data (lebih dari 1 baris)
+    if (sheet.getLastRow() > 1) {
+      var rows = sheet.getDataRange().getDisplayValues();
+      
+      if (rows.length > 1) {
+        var headers = rows[0];
+        
+        for (var r = 1; r < rows.length; r++) {
+          var row = rows[r];
+          var record = {};
+          var hasData = false;
+          
+          for (var c = 0; c < headers.length; c++) {
+            // Bersihkan nama header agar tidak ada spasi tak terlihat di Google Sheet
+            var headerName = headers[c] ? String(headers[c]).trim() : '';
+            if (headerName !== '') {
+              record[headerName] = row[c] || '';
+              if (row[c] !== '') hasData = true;
+            }
+          }
+          
+          if (hasData) {
+            allData.push(record);
+          }
+        }
+      }
+    }
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(allData))
+    .setMimeType(ContentService.MimeType.JSON);
+}
